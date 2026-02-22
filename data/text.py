@@ -162,6 +162,26 @@ GATHER_DEPART = [
 PASSIVE_RAIN_CATCHER = "the rain catcher has collected something."
 PASSIVE_GARDEN_BED   = "the garden bed yields a little."
 
+# --- Tending frame ------------------------------------------
+
+FRAME_HARVEST = [
+    "something in the beds has been gathered. you find it waiting.",
+    "a ready plot has been tended. the frame moved through while you were away.",
+    "the frame found something ready. it did what it was set to do.",
+]
+
+FRAME_CLEAR = [
+    "the weeds are gone from one corner. the frame worked while you were away.",
+    "a patch has been cleared. the ground is open again.",
+    "the frame cleared something. you notice it only after.",
+]
+
+FRAME_WATER = [
+    "a dry patch has been watered. your stores are a little lower.",
+    "the frame drew from your water. a plot that needed it has been tended.",
+    "something was thirsty. the frame attended to it.",
+]
+
 # --- Wanderers ----------------------------------------------
 
 WANDERERS = [
@@ -539,6 +559,17 @@ BUILDINGS = [
         "built": [
             "you reinforce the fitting. it should hold longer.",
             "the connection feels more permanent now. less give.",
+        ],
+    },
+    {
+        "key":      "tending_frame",
+        "label":    "tending frame",
+        "cost":     {"scrap": 8, "power": 3},
+        "desc":     "tends the garden while you are away",
+        "requires": "has_garden_bed",
+        "built": [
+            "you assemble the frame from salvaged parts. it stands in the garden, waiting to be told what to do.",
+            "upright in the beds. it doesn't do anything yet. you'll need to set it.",
         ],
     },
 ]

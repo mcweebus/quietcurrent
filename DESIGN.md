@@ -262,9 +262,10 @@ Real-world time elapsed since last session:
 4. **Flower crop** — separate from food crops. Aesthetic, attracts visitors
    more frequently. Planned as a Sprint after maintenance menu.
 
-5. **Robot gardener** — mid-game structure. Player programs simple automation
-   logic to tend plots while away. Intended as a clean module boundary.
-   Deferred until core loop is stable.
+5. ~~**Robot gardener**~~ — done as "tending frame" (8 scrap + 3 power,
+   requires garden bed). Three toggleable tasks: harvest, clear weeds,
+   water dry plots. One action per tick_all call. engine/robot.py,
+   run_frame_menu() in main.py, "t: program the frame" in main menu.
 
 6. ~~**Weather affecting garden**~~ — done. Rain: 60% chance +1 moisture
    per exposed plot (D/P/G/R), no evaporation. Sunny/windy: evaporate 2/tick

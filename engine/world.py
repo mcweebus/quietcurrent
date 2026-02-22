@@ -56,6 +56,11 @@ def tick_all(gs: GameState) -> TickResult:
         if gs.action_count % 12 == 0:
             gs.power = max(0, gs.power - min(len(gs.residents), 3))
 
+    # Tending frame
+    if gs.has_tending_frame and gs.garden_initialized and not result.passive_flash:
+        from engine import robot
+        result.passive_flash = robot.apply_frame(gs)
+
     # Passives
     if gs.has_rain_catcher:
         interval = 3 if gs.has_deepened_catcher else 4

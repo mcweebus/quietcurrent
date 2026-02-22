@@ -143,6 +143,8 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             menu_items.append(("3", "build"))
         if gs.has_garden_bed:
             menu_items.append(("g", "tend the garden"))
+        if gs.has_tending_frame:
+            menu_items.append(("t", "program the frame"))
         if gs.has_flower_garden:
             menu_items.append(("f", "visit the flower patch"))
         if current_wanderer:
@@ -195,6 +197,13 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             run_garden(stdscr, gs)
             save_game(gs)
 
+        elif key == "t" and gs.has_tending_frame:
+            run_frame_menu(stdscr, gs)
+            tick = world.tick_all(gs)
+            _collect_flashes(flashes, tick.panel_flash,
+                             tick.resident_flash, tick.passive_flash)
+            save_game(gs)
+
         elif key == "f" and gs.has_flower_garden:
             from ui.flower_view import run_flower_garden
             run_flower_garden(stdscr, gs)
@@ -210,7 +219,7 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             save_game(gs)
 
         # Check wanderer arrival each action
-        if not current_wanderer and key in ("1", "2", "3", "g", "f"):
+        if not current_wanderer and key in ("1", "2", "3", "g", "t", "f"):
             current_wanderer = world.check_wanderer_arrival(gs)
             if current_wanderer:
                 flashes.append(
@@ -356,6 +365,45 @@ def run_build_menu(stdscr: curses.window, gs: GameState) -> str | None:
             return random.choice(b["built"])
         elif key in ("q", "Q", "ESC"):
             return None
+
+
+# ── Frame menu ────────────────────────────────────────────────
+
+def run_frame_menu(stdscr: curses.window, gs: GameState) -> None:
+    from engine.robot import TASK_ORDER, TASK_LABELS
+    selected = 0
+    while True:
+        stdscr.erase()
+        scr.addstr(stdscr, 1, 2, "[ tending frame ]", scr.C_BRIGHT_WHITE, bold=True)
+        row = 3
+        for i, task in enumerate(TASK_ORDER):
+            prefix = "> " if i == selected else "  "
+            enabled = task in gs.frame_rules
+            label = TASK_LABELS[task]
+            status = "[on ]" if enabled else "[off]"
+            pair = scr.C_NORMAL if enabled else scr.C_DIM
+            scr.addstr(stdscr, row, 2,
+                       f"{prefix}{label:<28} {status}",
+                       pair, bold=(i == selected))
+            row += 1
+        row += 1
+        scr.addstr(stdscr, row, 2,
+                   "↑↓ select   space: toggle   q: done", scr.C_DIM)
+        stdscr.refresh()
+
+        key = scr.get_key(stdscr)
+        if key == "UP":
+            selected = max(0, selected - 1)
+        elif key == "DOWN":
+            selected = min(len(TASK_ORDER) - 1, selected + 1)
+        elif key in (" ", "\n", "\r"):
+            task = TASK_ORDER[selected]
+            if task in gs.frame_rules:
+                gs.frame_rules.remove(task)
+            else:
+                gs.frame_rules.append(task)
+        elif key in ("q", "Q", "ESC"):
+            break
 
 
 # ── Wanderer menu ─────────────────────────────────────────────
