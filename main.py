@@ -107,14 +107,15 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
 
         # Resources
         row += 1
-        resources = [
-            ("power", gs.power,  scr.C_BRIGHT_YELLOW),
-            ("water", gs.water,  scr.C_CYAN),
-            ("seeds", gs.seeds,  scr.C_BRIGHT_GREEN),
-            ("scrap", gs.scrap,  scr.C_YELLOW),
+        resources_top = [
+            ("power",    gs.power,    scr.C_BRIGHT_YELLOW),
+            ("water",    gs.water,    scr.C_CYAN),
+            ("spores",   gs.spores,   scr.C_BRIGHT_GREEN),
+            ("scrap",    gs.scrap,    scr.C_YELLOW),
+            ("mycelium", gs.mycelium, scr.C_MAGENTA),
         ]
         col = 2
-        for label, val, pair in resources:
+        for label, val, pair in resources_top:
             scr.addstr(stdscr, row,   col, label, pair)
             scr.addstr(stdscr, row+1, col, str(val), scr.C_NORMAL)
             col += 10

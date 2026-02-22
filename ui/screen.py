@@ -22,12 +22,12 @@ C_BRIGHT_WHITE  = 13
 # Plot state → color pair
 PLOT_COLORS = {
     "E": C_DIM,
-    "D": C_YELLOW,
-    "P": C_GREEN,
-    "G": C_BRIGHT_GREEN,
-    "R": C_BRIGHT_YELLOW,
-    "W": C_RED,
+    "H": C_DIM,
+    "N": C_GREEN,
+    "M": C_BRIGHT_GREEN,
+    "F": C_BRIGHT_YELLOW,
     "X": C_DIM,
+    "W": C_RED,
 }
 
 # Soil quality → color pair

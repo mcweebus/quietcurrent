@@ -69,7 +69,7 @@ def tick_all(gs: GameState) -> TickResult:
             result.passive_flash = txt.PASSIVE_RAIN_CATCHER
 
     if gs.has_garden_bed and gs.action_count % 8 == 0:
-        gs.seeds += 1
+        gs.spores += 1
         result.passive_flash = txt.PASSIVE_GARDEN_BED
 
     return result

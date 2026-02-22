@@ -104,7 +104,7 @@ def _apply_effect(name: str, gs: GameState) -> str | None:
             if roll < 0.15 and gs.garden_initialized and gs.garden:
                 idx = random.randrange(len(gs.garden))
                 p = gs.garden[idx]
-                if p["state"] in ("D", "E"):
+                if p["state"] == "E":
                     p["soil"] = min(5, p["soil"] + 1)
                     return "a corner of the garden looks different. the soil there is richer."
         case "weather_nudge":
@@ -112,7 +112,7 @@ def _apply_effect(name: str, gs: GameState) -> str | None:
                 gs.weather_duration -= 1
         case "seed_gen":
             if roll < 0.18:
-                gs.seeds += 1
+                gs.spores += 1
                 return "something near the garden has yielded a little more than expected."
         case "connector_protect" | "community_draw" | "catalyst":
             pass  # handled externally

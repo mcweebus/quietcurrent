@@ -1,24 +1,23 @@
 # engine/garden.py
-# Garden grid engine. No UI here — pure state mutation.
+# Garden grid engine — mycorrhizal network model. No UI here.
 
 import random
 from engine.state import GameState, GARDEN_W, GARDEN_H, GARDEN_SIZE, init_garden, plot_idx
 from data import text as txt
 
 
-CROPS = txt.CROPS
-
 # Plot state constants
-EMPTY    = "E"
-DUG      = "D"
-PLANTED  = "P"
-GROWING  = "G"
-READY    = "R"
-WEEDY    = "W"
-DEPLETED = "X"
+EMPTY     = "E"
+HYPHA     = "H"
+NETWORK   = "N"
+MATURE    = "M"
+FRUITING  = "F"
+DECOMP    = "X"
+COMPETING = "W"
 
-ACTIVE_STATES = (GROWING, READY)
-WORKABLE_STATES = (DUG, PLANTED, GROWING)
+ACTIVE_STATES    = (NETWORK, MATURE, FRUITING)
+LIVING_STATES    = (HYPHA, NETWORK, MATURE, FRUITING)
+WATERABLE_STATES = (HYPHA, NETWORK, MATURE, FRUITING)
 
 
 # ── Plot access ───────────────────────────────────────────────
@@ -42,32 +41,20 @@ def ensure_garden(gs: GameState) -> None:
 
 # ── Actions ───────────────────────────────────────────────────
 
-def action_dig(gs: GameState, x: int, y: int) -> str:
+def action_inoculate(gs: GameState, x: int, y: int) -> str:
     p = get_plot(gs, x, y)
-    if p["state"] == WEEDY:
-        return txt.GARDEN_DIG_WEEDS
     if p["state"] != EMPTY:
-        return txt.GARDEN_DIG_DONE
-    set_plot(gs, x, y, state=DUG)
-    return txt.GARDEN_DIG_OK.format(soil=p["soil"])
-
-
-def action_plant(gs: GameState, x: int, y: int, crop: str) -> str:
-    p = get_plot(gs, x, y)
-    if p["state"] != DUG:
-        return txt.GARDEN_PLANT_NONE
-    if gs.seeds < 1:
-        return txt.GARDEN_PLANT_NOSEED
-    if crop not in CROPS:
-        return "unknown crop."
-    gs.seeds -= 1
-    set_plot(gs, x, y, state=PLANTED, crop=crop, growth=0)
-    return txt.GARDEN_PLANT_OK
+        return txt.GARDEN_INOCULATE_OCCUPIED
+    if gs.spores < 1:
+        return txt.GARDEN_INOCULATE_NONE
+    gs.spores -= 1
+    set_plot(gs, x, y, state=HYPHA, age=0, fruit_age=0)
+    return txt.GARDEN_INOCULATE_OK
 
 
 def action_water(gs: GameState, x: int, y: int) -> str:
     p = get_plot(gs, x, y)
-    if p["state"] not in WORKABLE_STATES:
+    if p["state"] not in WATERABLE_STATES:
         return txt.GARDEN_WATER_NONE
     if gs.water < 1:
         return txt.GARDEN_WATER_DRY
@@ -77,58 +64,26 @@ def action_water(gs: GameState, x: int, y: int) -> str:
     return txt.GARDEN_WATER_OK.format(moist=new_moist)
 
 
-def action_harvest(gs: GameState, x: int, y: int,
-                   pollinator_bonus: bool = False) -> str:
+def action_clear(gs: GameState, x: int, y: int) -> str:
     p = get_plot(gs, x, y)
-    if p["state"] != READY:
-        return txt.GARDEN_HARVEST_WAIT
-
-    crop_key = p["crop"]
-    crop = CROPS.get(crop_key, {})
-    harvest = crop.get("harvest", {})
-    bonus = 1 if pollinator_bonus else 0
-    msg_parts = []
-
-    for resource, (lo, hi) in harvest.items():
-        amt = random.randint(lo, hi) + bonus
-        setattr(gs, resource, getattr(gs, resource) + amt)
-        msg_parts.append(f"+{amt} {resource}")
-
-    soil_bonus = crop.get("soil_bonus", 0)
-    if soil_bonus:
-        new_soil = min(5, p["soil"] + soil_bonus)
-        set_plot(gs, x, y, state=DEPLETED, crop="none", growth=0,
-                 soil=new_soil)
-        msg_parts.append(f"soil {new_soil}")
-    else:
-        set_plot(gs, x, y, state=DEPLETED, crop="none", growth=0)
-
-    msg = f"{crop_key}. {', '.join(msg_parts)}."
-    if pollinator_bonus:
-        msg += f" [{txt.POLLINATOR_BONUS}]"
-    return msg
-
-
-def action_clear_weeds(gs: GameState, x: int, y: int) -> str:
-    p = get_plot(gs, x, y)
-    if p["state"] != WEEDY:
-        return txt.GARDEN_WEED_NONE
+    if p["state"] != COMPETING:
+        return txt.GARDEN_CLEAR_NONE
     set_plot(gs, x, y, state=EMPTY)
-    return txt.GARDEN_WEED_OK
+    return txt.GARDEN_CLEAR_OK
 
 
-def action_apply_compost(gs: GameState, x: int, y: int) -> str:
+def action_enrich(gs: GameState, x: int, y: int) -> str:
     if not gs.has_compost_pile:
         return txt.GARDEN_COMPOST_NEED
     if gs.compost_level <= 0:
-        return txt.GARDEN_COMPOST_APPLY_EMPTY
+        return txt.GARDEN_ENRICH_NONE
     p = get_plot(gs, x, y)
-    if p["state"] != DUG:
-        return txt.GARDEN_COMPOST_APPLY_NODIG
-    new_soil = min(5, p["soil"] + 1)
+    if p["state"] != EMPTY:
+        return txt.GARDEN_ENRICH_NOT_EMPTY
+    new_soil = min(5, p["soil"] + 2)
     set_plot(gs, x, y, soil=new_soil)
     gs.compost_level -= 1
-    return txt.GARDEN_COMPOST_APPLY_OK.format(soil=new_soil)
+    return txt.GARDEN_ENRICH_OK.format(soil=new_soil)
 
 
 def action_add_compost(gs: GameState) -> str:
@@ -144,7 +99,7 @@ def action_add_compost(gs: GameState) -> str:
 # ── Garden tick ───────────────────────────────────────────────
 
 def garden_tick(gs: GameState) -> str | None:
-    """Advance growth, evaporate moisture, spread weeds.
+    """Advance mycorrhizal network state machine, moisture, competing growth.
     Returns a flash message or None."""
     flash = None
 
@@ -152,98 +107,118 @@ def garden_tick(gs: GameState) -> str | None:
         state = p["state"]
         moist = p["moisture"]
         soil  = p["soil"]
+        x, y  = i % GARDEN_W, i // GARDEN_W
 
-        # Moisture: rain waters exposed plots; sun/wind dries faster
+        # ── Moisture update ───────────────────────────────────
         if gs.weather == "rainy":
-            if state in (DUG, PLANTED, GROWING, READY):
+            if state in LIVING_STATES:
                 if random.random() < 0.6:
                     p["moisture"] = min(5, moist + 1)
-            # no evaporation — rain compensates
         elif moist > 0:
             loss = 2 if gs.weather in ("sunny", "windy") else 1
             p["moisture"] = max(0, moist - loss)
 
-        # Growth advance
-        moist = p["moisture"]  # re-read after weather update
-        if state in (PLANTED, GROWING) and moist > 0:
-            rate = int(soil * 4 + moist * 2)
-            p["growth"] = min(100, p["growth"] + rate)
-            p["state"] = GROWING
-            if p["growth"] >= 100:
-                p["state"] = READY
+        moist = p["moisture"]  # re-read after weather
 
-        # Weed spread (1% per empty/dug plot per action)
-        if state in (EMPTY, DUG):
-            if random.random() < 0.01:
-                p["state"] = WEEDY
+        # ── Skip plots that need no further processing ────────
+        if state not in LIVING_STATES and state not in (DECOMP, COMPETING, EMPTY):
+            continue
 
-        # Depleted recovery (8% chance per action)
-        if state == DEPLETED:
-            if random.random() < 0.08:
+        # ── Age advance (living plots) ────────────────────────
+        if state in LIVING_STATES:
+            p["age"] += 1
+
+        # ── Connectivity (adjacent living plots) ─────────────
+        connectivity = 0
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < GARDEN_W and 0 <= ny < GARDEN_H:
+                if gs.garden[plot_idx(nx, ny)]["state"] in LIVING_STATES:
+                    connectivity += 1
+
+        # ── State machine transitions ─────────────────────────
+        if state == HYPHA:
+            if p["age"] >= 15 and connectivity >= 1 and moist > 0:
+                p["state"] = NETWORK
+            elif moist == 0 and random.random() < 0.15:
+                p["state"] = DECOMP
+
+        elif state == NETWORK:
+            if connectivity == 0:
+                p["state"] = HYPHA   # isolated — downgrade
+            elif p["age"] >= 50 and connectivity >= 2 and soil >= 2:
+                p["state"] = MATURE
+
+        elif state == MATURE:
+            # Check for adjacent fruiting plot (no adjacent F rule)
+            adjacent_f = False
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < GARDEN_W and 0 <= ny < GARDEN_H:
+                    if gs.garden[plot_idx(nx, ny)]["state"] == FRUITING:
+                        adjacent_f = True
+                        break
+            if moist >= 3 and soil >= 3 and not adjacent_f:
+                if random.random() < 0.04:
+                    p["state"]    = FRUITING
+                    p["fruit_age"] = 0
+                    # Fruiting resource gain (fires once on entering F)
+                    gs.mycelium += 1
+                    if random.random() < 0.30:
+                        gs.water += 1
+                    if random.random() < 0.10:
+                        gs.power += 1
+                    if not flash:
+                        flash = random.choice(txt.NETWORK_FRUIT)
+
+        elif state == FRUITING:
+            p["fruit_age"] += 1
+            if p["fruit_age"] >= 6:
+                p["state"]    = MATURE
+                p["fruit_age"] = 0
+
+        # ── Decomposing: enrich adjacent soil ─────────────────
+        if state == DECOMP:
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < GARDEN_W and 0 <= ny < GARDEN_H:
+                    nb = gs.garden[plot_idx(nx, ny)]
+                    if nb["state"] in (HYPHA, NETWORK, MATURE):
+                        if random.random() < 0.15:
+                            nb["soil"] = min(5, nb["soil"] + 1)
+            if random.random() < 0.10:
                 p["state"] = EMPTY
+
+        # ── Moisture flow (N/M share moisture with dry neighbors) ──
+        if state in (NETWORK, MATURE) and moist >= 4:
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < GARDEN_W and 0 <= ny < GARDEN_H:
+                    nb = gs.garden[plot_idx(nx, ny)]
+                    if nb["state"] in LIVING_STATES and nb["moisture"] <= 1:
+                        p["moisture"] -= 1
+                        nb["moisture"] = min(5, nb["moisture"] + 1)
+                        break  # one transfer per plot per tick
+
+        # ── Spontaneous competing growth on empty plots ────────
+        if state == EMPTY and random.random() < 0.008:
+            p["state"] = COMPETING
 
     return flash
 
 
-# ── Pollinators ───────────────────────────────────────────────
+# ── Network summary ───────────────────────────────────────────
 
-class PollinatorSystem:
-    """Manages pollinator positions during a garden session.
-    Not persisted — regenerates each visit."""
-
-    def __init__(self):
-        self.positions: list[tuple[int, int]] = []
-
-    def tick(self, gs: GameState) -> None:
-        active = sum(
-            1 for p in gs.garden if p["state"] in ACTIVE_STATES
-        )
-
-        # Spawn if conditions met
-        if len(self.positions) < 3 and active >= 2:
-            spawn_chance = max(0, 6 - active)
-            if random.random() < spawn_chance / 20:
-                self.positions.append((
-                    random.randint(0, GARDEN_W - 1),
-                    random.randint(0, GARDEN_H - 1),
-                ))
-
-        # Wander + 10% leave
-        new_pos = []
-        for (px, py) in self.positions:
-            if random.random() < 0.10:
-                continue  # leaves
-            dx, dy = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
-            px = max(0, min(GARDEN_W - 1, px + dx))
-            py = max(0, min(GARDEN_H - 1, py + dy))
-            new_pos.append((px, py))
-        self.positions = new_pos
-
-    def nearby(self, x: int, y: int) -> bool:
-        """True if a pollinator is on or adjacent to (x, y)."""
-        for (px, py) in self.positions:
-            if abs(px - x) <= 1 and abs(py - y) <= 1:
-                return True
-        return False
-
-    def at(self, x: int, y: int) -> bool:
-        return (x, y) in self.positions
-
-
-# ── Summary stats ─────────────────────────────────────────────
-
-def garden_summary(gs: GameState) -> dict:
-    total = growing = ready = weedy = 0
-    for p in gs.garden:
-        s = p["state"]
-        if s not in (EMPTY, DEPLETED):
-            total += 1
-        if s == GROWING: growing += 1
-        if s == READY:   ready += 1
-        if s == WEEDY:   weedy += 1
+def network_summary(gs: GameState) -> dict:
+    hypha     = sum(1 for p in gs.garden if p["state"] == HYPHA)
+    connected = sum(1 for p in gs.garden if p["state"] in (NETWORK, MATURE, FRUITING))
+    mature    = sum(1 for p in gs.garden if p["state"] in (MATURE, FRUITING))
+    fruiting  = sum(1 for p in gs.garden if p["state"] == FRUITING)
+    competing = sum(1 for p in gs.garden if p["state"] == COMPETING)
     return {
-        "total":   total,
-        "growing": growing,
-        "ready":   ready,
-        "weedy":   weedy,
+        "hypha":     hypha,
+        "connected": connected,
+        "mature":    mature,
+        "fruiting":  fruiting,
+        "competing": competing,
     }

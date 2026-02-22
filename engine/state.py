@@ -21,11 +21,11 @@ RESIDENT_MAX = 8
 
 @dataclass
 class PlotState:
-    state:    str   = "E"    # E D P G R W X
-    soil:     int   = 1      # 1-5
-    moisture: int   = 0      # 0-5
-    crop:     str   = "none"
-    growth:   int   = 0      # 0-100
+    state:     str = "E"   # E H N M F X W
+    soil:      int = 1     # 1-5 substrate richness
+    moisture:  int = 0     # 0-5
+    age:       int = 0     # ticks since inoculated
+    fruit_age: int = 0     # ticks spent in F state
 
 
 @dataclass
@@ -50,10 +50,11 @@ class GameState:
     panel_connector:     bool  = False
 
     # Resources
-    power:  int = 0
-    scrap:  int = 0
-    water:  int = 0
-    seeds:  int = 0
+    power:    int = 0
+    scrap:    int = 0
+    water:    int = 0
+    spores:   int = 0
+    mycelium: int = 0
 
     # Progress counters
     tend_count:          int   = 0
@@ -96,10 +97,6 @@ class GameState:
     flower_garden_unlocked_by:   str   = ""
     flowers:                     list  = field(default_factory=list)
 
-    # Flower garden
-    has_flower_garden:   bool  = False
-    flower_garden:       list  = field(default_factory=list)   # FLOWER_SLOT_COUNT slot dicts
-
     # Tending frame
     has_tending_frame:   bool  = False
     frame_rules:         list  = field(default_factory=list)   # enabled task keys
@@ -117,7 +114,7 @@ class GameState:
     def active_garden_plots(self) -> int:
         return sum(
             1 for p in self.garden
-            if p.get("state") in ("G", "R")
+            if p.get("state") in ("N", "M", "F")
         )
 
     def weedy_plots(self) -> int:
@@ -148,18 +145,48 @@ def save_game(gs: GameState) -> None:
         json.dump(_state_to_dict(gs), f, indent=2)
 
 
+_OLD_STATE_MAP = {"D": "E", "P": "E", "G": "H", "R": "M"}
+
+
 def load_game() -> Optional[GameState]:
     if not os.path.exists(SAVE_FILE):
         return None
     try:
         with open(SAVE_FILE) as f:
             d = json.load(f)
+
+        # Rename seeds → spores in saved data
+        if "seeds" in d and "spores" not in d:
+            d["spores"] = d.pop("seeds")
+
         gs = _dict_to_state(d)
+
         # Migrate old saves — fill missing fields with defaults
         default = GameState()
         for k, v in default.__dict__.items():
             if not hasattr(gs, k) or getattr(gs, k) is None:
                 setattr(gs, k, v)
+
+        # Migrate old garden plot states
+        if gs.garden:
+            for p in gs.garden:
+                old_state = p.get("state", "E")
+                if old_state in _OLD_STATE_MAP:
+                    p["state"] = _OLD_STATE_MAP[old_state]
+                # Rename growth → age if present
+                if "growth" in p and "age" not in p:
+                    p["age"] = 0   # reset — growth% doesn't map to ticks
+                    del p["growth"]
+                elif "growth" in p:
+                    del p["growth"]
+                # Remove crop field
+                p.pop("crop", None)
+                # Ensure new fields exist
+                if "age" not in p:
+                    p["age"] = 0
+                if "fruit_age" not in p:
+                    p["fruit_age"] = 0
+
         return gs
     except (json.JSONDecodeError, KeyError):
         return None
@@ -183,11 +210,11 @@ def init_garden() -> list:
     plots = []
     for _ in range(GARDEN_SIZE):
         plots.append({
-            "state":    "E",
-            "soil":     random.randint(1, 2),
-            "moisture": 0,
-            "crop":     "none",
-            "growth":   0,
+            "state":     "E",
+            "soil":      random.randint(1, 2),
+            "moisture":  0,
+            "age":       0,
+            "fruit_age": 0,
         })
     return plots
 

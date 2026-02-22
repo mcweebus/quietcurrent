@@ -58,7 +58,7 @@ def run_explore(stdscr: curses.window, gs: GameState,
 
     px, py = 0, 0
     hp = 5 + bonus_hp
-    pack = {"scrap": 0, "water": 0, "seeds": 0}
+    pack = {"scrap": 0, "water": 0, "spores": 0}
     msg = random.choice(txt.EXPLORE_DEPART).format(name=gs.settlement_name)
     running = True
     result_msg = None
@@ -152,8 +152,8 @@ def _loot(pack: dict) -> tuple[str, dict]:
         pack["water"] += amt
         return f"{random.choice(txt.EXPLORE_LOOT_WATER)} (+{amt} water)", pack
     else:
-        pack["seeds"] += 1
-        return f"{random.choice(txt.EXPLORE_LOOT_SEEDS)} (+1 seeds)", pack
+        pack["spores"] += 1
+        return f"{random.choice(txt.EXPLORE_LOOT_SPORES)} (+1 spores)", pack
 
 
 def _encounter(hp: int) -> tuple[str, int]:
@@ -165,15 +165,15 @@ def _encounter(hp: int) -> tuple[str, int]:
 
 
 def _return_home(gs: GameState, name: str, pack: dict) -> str:
-    gs.scrap += pack["scrap"]
-    gs.water += pack["water"]
-    gs.seeds += pack["seeds"]
+    gs.scrap  += pack["scrap"]
+    gs.water  += pack["water"]
+    gs.spores += pack["spores"]
 
     msg = txt.EXPLORE_RETURN.format(name=name)
     parts = []
-    if pack["scrap"]: parts.append(f"+{pack['scrap']} scrap")
-    if pack["water"]: parts.append(f"+{pack['water']} water")
-    if pack["seeds"]: parts.append(f"+{pack['seeds']} seeds")
+    if pack["scrap"]:  parts.append(f"+{pack['scrap']} scrap")
+    if pack["water"]:  parts.append(f"+{pack['water']} water")
+    if pack["spores"]: parts.append(f"+{pack['spores']} spores")
     if parts:
         msg += " — " + ", ".join(parts)
     else:
@@ -187,7 +187,7 @@ def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg, visited) -> None:
 
     # Stats line
     pack_str = (f"scrap:{pack['scrap']}  water:{pack['water']}  "
-                f"seeds:{pack['seeds']}")
+                f"spores:{pack['spores']}")
     scr.addstr(stdscr, 0, 2, f"hp:{hp}   {pack_str}", scr.C_DIM)
 
     # Map border

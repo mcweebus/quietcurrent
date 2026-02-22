@@ -102,10 +102,10 @@ EXPLORE_LOOT_WATER = [
     "condensation, carefully gathered.",
 ]
 
-EXPLORE_LOOT_SEEDS = [
-    "a paper envelope. seeds, probably viable.",
-    "dried pods. worth planting.",
-    "a small cache, left deliberately.",
+EXPLORE_LOOT_SPORES = [
+    "a small container. spores, still viable.",
+    "dried fruiting bodies. worth inoculating.",
+    "a wrapped cache, left deliberately.",
 ]
 
 EXPLORE_ENCOUNTERS_SAFE = [
@@ -160,14 +160,14 @@ GATHER_DEPART = [
 # --- Passives -----------------------------------------------
 
 PASSIVE_RAIN_CATCHER = "the rain catcher has collected something."
-PASSIVE_GARDEN_BED   = "the garden bed yields a little."
+PASSIVE_GARDEN_BED   = "the garden bed yields a few spores."
 
 # --- Tending frame ------------------------------------------
 
-FRAME_HARVEST = [
-    "something in the beds has been gathered. you find it waiting.",
-    "a ready plot has been tended. the frame moved through while you were away.",
-    "the frame found something ready. it did what it was set to do.",
+FRAME_INOCULATE = [
+    "the frame found an empty patch. a spore has been pressed in.",
+    "a new hypha started while you were away. the frame did it.",
+    "something small has been inoculated. the frame chose its spot.",
 ]
 
 FRAME_CLEAR = [
@@ -197,14 +197,14 @@ WANDERERS = [
         "name":  "Drift",
         "desc":  "knows seventeen ways to approach a problem. won't say where that comes from.",
         "give":  "water", "give_amt": 3,
-        "want":  "seeds", "want_amt": 1,
+        "want":  "spores", "want_amt": 1,
         "stay_chance": 0.25,
         "fragment": False,
     },
     {
         "name":  "Fen",
         "desc":  "marks every surface they pass with a small impression. old habit, or so it seems.",
-        "give":  "seeds", "give_amt": 3,
+        "give":  "mycelium", "give_amt": 2,
         "want":  "scrap", "want_amt": 1,
         "stay_chance": 0.35,
         "fragment": True,
@@ -229,14 +229,14 @@ WANDERERS = [
         "name":  "Weft",
         "desc":  "arrived without announcement. the space around the panel feels more settled since.",
         "give":  "scrap", "give_amt": 2,
-        "want":  "seeds", "want_amt": 2,
+        "want":  "spores", "want_amt": 2,
         "stay_chance": 0.4,
         "fragment": True,
     },
     {
         "name":  "Tuck",
         "desc":  "found the rain catcher before you pointed it out. has been near it since.",
-        "give":  "seeds", "give_amt": 2,
+        "give":  "spores", "give_amt": 2,
         "want":  "water", "want_amt": 1,
         "stay_chance": 0.35,
         "fragment": False,
@@ -253,15 +253,15 @@ WANDERERS = [
         "name":  "Thresh",
         "desc":  "arrived with more than expected. or less. the accounting is unclear.",
         "give":  "scrap", "give_amt": 3,
-        "want":  "seeds", "want_amt": 1,
+        "want":  "spores", "want_amt": 1,
         "stay_chance": 0.25,
         "fragment": False,
     },
     {
         "name":  "Reed",
         "desc":  "has strong opinions about where things belong. not always wrong about it.",
-        "give":  "seeds", "give_amt": 4,
-        "want":  "water", "want_amt": 2,
+        "give":  "spores", "give_amt": 4,
+        "want":  "mycelium", "want_amt": 1,
         "stay_chance": 0.3,
         "fragment": True,
     },
@@ -394,52 +394,43 @@ DECAY_MESSAGES = {
 
 # --- Garden -------------------------------------------------
 
-CROPS = {
-    "sunflower": {
-        "label":   "sunflower",
-        "symbol":  "S",
-        "speed":   1.4,    # growth rate multiplier
-        "harvest": {"seeds": (2, 3)},   # (min, max) before bonus
-        "desc":    "fast grower, yields seeds",
-    },
-    "squash": {
-        "label":   "squash",
-        "symbol":  "Q",
-        "speed":   0.7,
-        "harvest": {"seeds": (1, 2), "water": (1, 2)},
-        "desc":    "slow, yields water and seeds",
-    },
-    "bean": {
-        "label":   "bean",
-        "symbol":  "B",
-        "speed":   1.0,
-        "harvest": {"seeds": (2, 3)},
-        "soil_bonus": 1,
-        "desc":    "medium, yields seeds, improves soil",
-    },
+# Network state display names
+NETWORK_STATE_NAMES = {
+    "E": "empty substrate",
+    "H": "hypha",
+    "N": "network node",
+    "M": "mature",
+    "F": "fruiting",
+    "X": "decomposing",
+    "W": "competing growth",
 }
 
 # Garden messages
-GARDEN_DIG_OK       = "you turn the earth. soil quality: {soil}."
-GARDEN_DIG_WEEDS    = "clear the weeds first."
-GARDEN_DIG_DONE     = "this plot is already worked."
-GARDEN_PLANT_NONE   = "dig the plot first."
-GARDEN_PLANT_NOSEED = "you have no seeds."
-GARDEN_PLANT_OK     = "you press the seed into the earth. now it waits."
-GARDEN_WATER_OK     = "the earth absorbs it. moisture: {moist}."
-GARDEN_WATER_NONE   = "nothing here to water."
-GARDEN_WATER_DRY    = "you have no water."
-GARDEN_HARVEST_WAIT = "this plot isn't ready yet."
-GARDEN_WEED_OK      = "weeds pulled. the ground is open again."
-GARDEN_WEED_NONE    = "no weeds here."
-GARDEN_COMPOST_NEED = "you need a compost pile first."
-GARDEN_COMPOST_APPLY_OK   = "rich material worked into the earth. soil quality now {soil}."
-GARDEN_COMPOST_APPLY_EMPTY= "the compost pile is empty. add to it first."
-GARDEN_COMPOST_APPLY_NODIG= "dig this plot before applying compost."
+GARDEN_INOCULATE_OK       = "you press the spore into the substrate. something begins."
+GARDEN_INOCULATE_NONE     = "you have no spores."
+GARDEN_INOCULATE_OCCUPIED = "something is already growing here."
+GARDEN_WATER_OK           = "the substrate absorbs it. moisture: {moist}."
+GARDEN_WATER_NONE         = "nothing here to water."
+GARDEN_WATER_DRY          = "you have no water."
+GARDEN_CLEAR_OK           = "the competing growth is cleared. the ground is open again."
+GARDEN_CLEAR_NONE         = "no competing growth here."
+GARDEN_ENRICH_OK          = "rich material worked into the substrate. soil quality now {soil}."
+GARDEN_ENRICH_NONE        = "the compost pile is empty. add to it first."
+GARDEN_ENRICH_NOT_EMPTY   = "only empty substrate can be enriched."
+GARDEN_COMPOST_NEED       = "you need a compost pile first."
 GARDEN_COMPOST_ADD_OK     = "you add to the pile. it steams faintly. (compost: {level}/5)"
 GARDEN_COMPOST_ADD_NONE   = "nothing to add to the pile right now."
-GARDEN_ENTER        = "you step into the garden."
-GARDEN_LEAVE        = "you leave the garden."
+GARDEN_ENTER              = "you step into the garden."
+GARDEN_LEAVE              = "you leave the garden."
+
+# Network fruiting flash messages
+NETWORK_FRUIT = [
+    "the network fruits. something has formed.",
+    "a fruiting body. the network is productive.",
+    "something emerges from the substrate.",
+    "the colony has produced something.",
+    "a quiet bloom from the mycelium.",
+]
 
 # --- Flower Garden ------------------------------------------
 
@@ -491,10 +482,10 @@ BUILDINGS = [
     {
         "key":   "garden_bed",
         "label": "garden bed",
-        "cost":  {"scrap": 4, "seeds": 2},
-        "desc":  "a place to grow things",
+        "cost":  {"scrap": 4, "spores": 2},
+        "desc":  "a place to tend the network",
         "built": [
-            "broken ground, turned and bordered. something might grow here.",
+            "broken ground, bordered and ready. something might take hold here.",
             "you clear the space. the earth underneath is darker than expected.",
         ],
     },
@@ -621,6 +612,6 @@ FLOWER_AMBIENT = [
     "a bee passes through. it does not stop, but it notices.",
     "the garden has its own schedule.",
     "something opened overnight. you weren't watching.",
-    "the seeds know where to go.",
+    "the garden has its own sense of direction.",
     "the oldest flowers are the ones you didn't plant.",
 ]

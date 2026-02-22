@@ -4,7 +4,7 @@
 
 import curses
 from engine.state import GameState, GARDEN_SIZE
-from engine.garden import garden_summary
+from engine.garden import network_summary
 from engine import panel as pan
 from ui import screen as scr
 from data import text as txt
@@ -79,8 +79,8 @@ def _build_scene(gs: GameState) -> list:
 
     # Garden / flowers
     if gs.has_garden_bed:
-        summ = garden_summary(gs) if gs.garden_initialized else {}
-        active = summ.get("growing", 0) + summ.get("ready", 0)
+        summ = network_summary(gs) if gs.garden_initialized else {}
+        active = summ.get("connected", 0) + summ.get("hypha", 0)
 
         if active >= 4:
             lines[7] = [
@@ -205,28 +205,24 @@ def _build_status(gs: GameState, days: int, decay_msg: str | None) -> list:
     lines[4] = [("garden", scr.C_NORMAL, True)]
 
     if gs.garden_initialized and gs.garden:
-        summ = garden_summary(gs)
-        total   = summ["total"]
-        growing = summ["growing"]
-        ready   = summ["ready"]
-        weedy   = summ["weedy"]
+        summ = network_summary(gs)
+        connected = summ["connected"]
+        mature    = summ["mature"]
+        fruiting  = summ["fruiting"]
+        hypha     = summ["hypha"]
 
-        if total > 0:
-            pct = (growing + ready) * 100 // total
-            bar_len = 20
-            filled = pct * bar_len // 100
-            bar_chars = "█" * filled + "░" * (bar_len - filled)
-            lines[5] = [(bar_chars[:filled], scr.C_BRIGHT_GREEN, False),
-                        (bar_chars[filled:], scr.C_DIM, False),
-                        (f"  {pct}%", scr.C_NORMAL, False)]
-            lines[6] = [("growing ", scr.C_BRIGHT_GREEN, False),
-                        (str(growing), scr.C_NORMAL, False),
-                        ("  ready ", scr.C_BRIGHT_YELLOW, False),
-                        (str(ready), scr.C_NORMAL, False),
-                        ("  weedy ", scr.C_RED, False),
-                        (str(weedy), scr.C_NORMAL, False)]
+        if connected + hypha > 0:
+            lines[5] = [("network: ", scr.C_NORMAL, False),
+                        (str(connected), scr.C_BRIGHT_GREEN, False),
+                        (" nodes", scr.C_DIM, False)]
+            lines[6] = [("mature ", scr.C_BRIGHT_GREEN, False),
+                        (str(mature), scr.C_NORMAL, False),
+                        ("  fruiting ", scr.C_BRIGHT_YELLOW, False),
+                        (str(fruiting), scr.C_NORMAL, False),
+                        ("  hypha ", scr.C_DIM, False),
+                        (str(hypha), scr.C_NORMAL, False)]
         else:
-            lines[5] = [("not yet planted", scr.C_DIM, False)]
+            lines[5] = [("not yet inoculated", scr.C_DIM, False)]
     else:
         lines[5] = [("—", scr.C_DIM, False)]
 
@@ -249,8 +245,10 @@ def _build_status(gs: GameState, days: int, decay_msg: str | None) -> list:
                 (str(gs.water), scr.C_NORMAL, False)]
     lines[9] = [("scrap ", scr.C_YELLOW, False),
                 (str(gs.scrap).ljust(4), scr.C_NORMAL, False),
-                ("  seeds ", scr.C_BRIGHT_GREEN, False),
-                (str(gs.seeds), scr.C_NORMAL, False)]
+                ("  spores ", scr.C_BRIGHT_GREEN, False),
+                (str(gs.spores).ljust(4), scr.C_NORMAL, False),
+                ("  mycelium ", scr.C_MAGENTA, False),
+                (str(gs.mycelium), scr.C_NORMAL, False)]
 
     # Residents
     if gs.residents:
