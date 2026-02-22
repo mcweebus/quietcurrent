@@ -144,6 +144,27 @@ def _build_scene(gs: GameState) -> list:
             lines[9] = lines[9] + [("  ", scr.C_NORMAL, False),
                                     ("[~]", scr.C_DIM, False)]
 
+    # Flower garden
+    if gs.has_flower_garden and gs.flower_garden_init:
+        from engine.flowers import FLOWERS
+        blooming = [s for s in gs.flowers if s["state"] == "F"]
+
+        if not blooming:
+            flower_seg = [("  ", scr.C_NORMAL, False),
+                          (". . .", scr.C_DIM, False)]
+        else:
+            flower_seg = [("  ", scr.C_NORMAL, False)]
+            for slot in blooming[:5]:
+                spec = FLOWERS.get(slot["flower"], {})
+                flower_seg.append((spec.get("bloom_sym", "*"),
+                                   spec.get("color", scr.C_BRIGHT_YELLOW), True))
+                flower_seg.append((" ", scr.C_NORMAL, False))
+
+        if gs.has_garden_bed:
+            lines[9] = lines[9] + flower_seg
+        else:
+            lines[7] = flower_seg
+
     # Ground
     lines[10] = [("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", scr.C_DIM, False)]
 
@@ -209,8 +230,19 @@ def _build_status(gs: GameState, days: int, decay_msg: str | None) -> list:
     else:
         lines[5] = [("—", scr.C_DIM, False)]
 
+    # Flower garden summary
+    if gs.has_flower_garden and gs.flower_garden_init:
+        from engine.flowers import flower_summary
+        fsumm = flower_summary(gs)
+        lines[7] = [("flowers  ", scr.C_NORMAL, True),
+                    ("budding ",   scr.C_GREEN, False),
+                    (str(fsumm["budding"]),   scr.C_NORMAL, False),
+                    ("  blooming ", scr.C_BRIGHT_YELLOW, False),
+                    (str(fsumm["flowering"]), scr.C_NORMAL, False)]
+    else:
+        lines[7] = []
+
     # Resources
-    lines[7] = []
     lines[8] = [("power ", scr.C_BRIGHT_YELLOW, False),
                 (str(gs.power).ljust(4), scr.C_NORMAL, False),
                 ("  water ", scr.C_CYAN, False),
