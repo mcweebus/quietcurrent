@@ -50,7 +50,7 @@ def init_colors() -> None:
     curses.start_color()
     curses.use_default_colors()
 
-    curses.init_pair(C_DIM,          curses.COLOR_BLACK,   -1)
+    curses.init_pair(C_DIM,          -1,                   -1)
     curses.init_pair(C_RED,          curses.COLOR_RED,     -1)
     curses.init_pair(C_GREEN,        curses.COLOR_GREEN,   -1)
     curses.init_pair(C_YELLOW,       curses.COLOR_YELLOW,  -1)
@@ -67,7 +67,7 @@ def init_colors() -> None:
 def attr(pair_id: int, bold: bool = False, dim: bool = False) -> int:
     a = curses.color_pair(pair_id)
     if bold: a |= curses.A_BOLD
-    if dim:  a |= curses.A_DIM
+    if dim or pair_id == C_DIM: a |= curses.A_DIM
     return a
 
 

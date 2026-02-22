@@ -119,6 +119,8 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             menu_items.append(("3", "build"))
         if gs.has_garden_bed:
             menu_items.append(("g", "tend the garden"))
+        if gs.has_flower_garden:
+            menu_items.append(("f", "visit the flower patch"))
         if current_wanderer:
             menu_items.append(("4", f"speak with {current_wanderer['name']}"))
         menu_items.append(("q", "leave for now"))
@@ -170,6 +172,11 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             run_garden(stdscr, gs)
             save_game(gs)
 
+        elif key == "f" and gs.has_flower_garden:
+            from ui.flower_view import run_flower_garden
+            run_flower_garden(stdscr, gs)
+            save_game(gs)
+
         elif key == "4" and current_wanderer:
             result = run_wanderer_menu(stdscr, gs, current_wanderer)
             stay_result = world.resolve_stay(gs, current_wanderer)
@@ -182,7 +189,7 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             save_game(gs)
 
         # Check wanderer arrival each action
-        if not current_wanderer and key in ("1", "2", "3", "g"):
+        if not current_wanderer and key in ("1", "2", "3", "g", "f"):
             current_wanderer = world.check_wanderer_arrival(gs)
             if current_wanderer:
                 flashes.append(
@@ -377,6 +384,27 @@ def main(stdscr: curses.window) -> None:
 
 
 if __name__ == "__main__":
+    import os
+    if not os.isatty(sys.stdin.fileno()):
+        # No TTY — re-launch in a terminal window
+        script = os.path.abspath(__file__)
+        terminals = [
+            ["xfce4-terminal", "--hold", "-e", f"python3 {script}"],
+            ["gnome-terminal", "--", "python3", script],
+            ["xterm", "-hold", "-e", f"python3 {script}"],
+            ["konsole", "--hold", "-e", f"python3 {script}"],
+            ["alacritty", "-e", "python3", script],
+            ["kitty", "python3", script],
+        ]
+        import subprocess
+        for cmd in terminals:
+            try:
+                subprocess.Popen(cmd)
+                break
+            except FileNotFoundError:
+                continue
+        sys.exit(0)
+
     try:
         curses.wrapper(main)
     except KeyboardInterrupt:

@@ -400,6 +400,26 @@ GARDEN_COMPOST_ADD_NONE   = "nothing to add to the pile right now."
 GARDEN_ENTER        = "you step into the garden."
 GARDEN_LEAVE        = "you leave the garden."
 
+# --- Flower Garden ------------------------------------------
+
+FLOWER_ENTER          = "you step into the flower garden."
+FLOWER_LEAVE          = "you leave the flower garden."
+FLOWER_PLANTED        = "you press the {flower} into the soil."
+FLOWER_PLANT_OCCUPIED = "something is already growing here."
+FLOWER_UNLOCK         = "{name} brought something with them — seeds, pressed flat in a cloth."
+
+FLOWER_VISIT_EMPTY = "the garden is quiet. nothing is in bloom yet."
+
+FLOWER_VISIT_BLOOMING = [
+    "something has opened.",
+    "colour, unexpected.",
+    "the bees will know before you do.",
+    "quiet, and then — flowers.",
+    "the garden has its own schedule.",
+    "the oldest flowers are the ones you didn't plant.",
+    "something opened overnight. you weren't watching.",
+]
+
 # Pollinator
 POLLINATOR_PRESENT  = "✦ pollinators visiting"
 POLLINATOR_BONUS    = "pollinator bonus"
@@ -480,3 +500,29 @@ ANCESTRAL_MILESTONE = (
 ANCESTRAL_DEATH = (
     "something remains of what was known. {fragment}."
 )
+
+# --- Flower Garden ------------------------------------------
+
+FLOWER_ENTER = "you step into the flower garden."
+FLOWER_LEAVE = "you leave the flower garden."
+FLOWER_PLANT_OK       = "you press the {variety} into the soil."
+FLOWER_PLANTED        = "you press the {flower} into the soil."
+FLOWER_PLANT_OCCUPIED = "something is already growing here."
+FLOWER_GARDEN_UNLOCKED = "{name} brought something with them. seeds, pressed flat in a cloth."
+
+FLOWER_BLOOM_LINES = [
+    "something has opened.",
+    "colour, unexpected.",
+    "a bloom. the bees will know before you do.",
+    "quiet, and then — flowers.",
+]
+
+FLOWER_AMBIENT = [
+    "the flower garden grows whether or not you tend it.",
+    "the air here is slightly different. something to do with the blooms.",
+    "a bee passes through. it does not stop, but it notices.",
+    "the garden has its own schedule.",
+    "something opened overnight. you weren't watching.",
+    "the seeds know where to go.",
+    "the oldest flowers are the ones you didn't plant.",
+]

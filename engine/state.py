@@ -84,6 +84,16 @@ class GameState:
     garden_initialized:  bool  = False
     garden:              list  = field(default_factory=list)   # GARDEN_SIZE PlotState dicts
 
+    # Flower garden
+    has_flower_garden:           bool  = False
+    flower_garden_init:          bool  = False
+    flower_garden_unlocked_by:   str   = ""
+    flowers:                     list  = field(default_factory=list)
+
+    # Flower garden
+    has_flower_garden:   bool  = False
+    flower_garden:       list  = field(default_factory=list)   # FLOWER_SLOT_COUNT slot dicts
+
     # Timestamps
     last_seen:           float = field(default_factory=time.time)
 

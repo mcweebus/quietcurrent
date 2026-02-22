@@ -115,7 +115,19 @@ def resolve_stay(gs: GameState, wanderer: dict) -> str:
     if random.random() < wanderer["stay_chance"]:
         added = res.add_resident(gs, name)
         if added:
-            return txt.WANDERER_STAY.format(name=name)
+            msg = txt.WANDERER_STAY.format(name=name)
+            if not gs.has_flower_garden and (
+                len(gs.residents) >= 2 or random.random() < 0.7
+            ):
+                from engine.flowers import init_flowers, action_plant_flower
+                gs.has_flower_garden = True
+                gs.flower_garden_init = True
+                gs.flower_garden_unlocked_by = name
+                gs.flowers = init_flowers()
+                action_plant_flower(gs, 0, "marigold")   # center
+                action_plant_flower(gs, 1, "lavender")   # ring1 top
+                msg += "  " + txt.FLOWER_GARDEN_UNLOCKED.format(name=name)
+            return msg
         else:
             return txt.WANDERER_NO_ROOM.format(name=name)
     return txt.WANDERER_LEAVE.format(name=name)
