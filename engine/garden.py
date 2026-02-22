@@ -153,11 +153,18 @@ def garden_tick(gs: GameState) -> str | None:
         moist = p["moisture"]
         soil  = p["soil"]
 
-        # Moisture evaporates
-        if moist > 0:
-            p["moisture"] -= 1
+        # Moisture: rain waters exposed plots; sun/wind dries faster
+        if gs.weather == "rainy":
+            if state in (DUG, PLANTED, GROWING, READY):
+                if random.random() < 0.6:
+                    p["moisture"] = min(5, moist + 1)
+            # no evaporation — rain compensates
+        elif moist > 0:
+            loss = 2 if gs.weather in ("sunny", "windy") else 1
+            p["moisture"] = max(0, moist - loss)
 
         # Growth advance
+        moist = p["moisture"]  # re-read after weather update
         if state in (PLANTED, GROWING) and moist > 0:
             rate = int(soil * 4 + moist * 2)
             p["growth"] = min(100, p["growth"] + rate)

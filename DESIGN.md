@@ -264,9 +264,9 @@ Real-world time elapsed since last session:
    logic to tend plots while away. Intended as a clean module boundary.
    Deferred until core loop is stable.
 
-6. **Weather affecting garden** — rain should increase moisture on outdoor
-   plots. Dry spells should accelerate moisture loss. Infrastructure exists
-   (weather state in GameState), logic not yet wired.
+6. ~~**Weather affecting garden**~~ — done. Rain: 60% chance +1 moisture
+   per exposed plot (D/P/G/R), no evaporation. Sunny/windy: evaporate 2/tick
+   instead of 1. Cloudy: normal (evaporate 1).
 
 7. **Windows terminal Unicode** — curses on Windows via python-windows-curses
    package. Test ✦ ☀ ☁ ☂ █ ░ rendering on Windows Terminal specifically.
