@@ -38,9 +38,24 @@ def _gen_map() -> list[list[str]]:
     return grid
 
 
+def _load_grid(flat: list) -> list[list[str]]:
+    return [[flat[y * MAP_W + x] for x in range(MAP_W)] for y in range(MAP_H)]
+
+
+def _save_grid(gs: GameState, grid: list[list[str]]) -> None:
+    gs.explore_map = [grid[y][x] for y in range(MAP_H) for x in range(MAP_W)]
+
+
 def run_explore(stdscr: curses.window, gs: GameState,
                 bonus_hp: int = 0) -> str | None:
-    grid = _gen_map()
+    if gs.explore_map and len(gs.explore_map) == MAP_W * MAP_H:
+        grid = _load_grid(gs.explore_map)
+    else:
+        grid = _gen_map()
+
+    visited: set[tuple[int, int]] = {(v[0], v[1]) for v in gs.explore_visited}
+    visited.add((0, 0))
+
     px, py = 0, 0
     hp = 5 + bonus_hp
     pack = {"scrap": 0, "water": 0, "seeds": 0}
@@ -58,7 +73,7 @@ def run_explore(stdscr: curses.window, gs: GameState,
     curses.napms(1500)
 
     while running:
-        _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg)
+        _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg, visited)
         msg = ""
 
         key = scr.get_key(stdscr)
@@ -83,6 +98,7 @@ def run_explore(stdscr: curses.window, gs: GameState,
                 msg = "the way is blocked."
             else:
                 px, py = nx, ny
+                visited.add((px, py))
                 msg, hp = _handle_cell(grid, px, py, hp, pack)
 
         if hp <= 0:
@@ -98,6 +114,10 @@ def run_explore(stdscr: curses.window, gs: GameState,
             stdscr.refresh()
             curses.napms(3000)
             result_msg = None
+
+    # Persist map state and visited knowledge regardless of exit path
+    _save_grid(gs, grid)
+    gs.explore_visited = [[x, y] for x, y in visited]
 
     return result_msg
 
@@ -161,7 +181,7 @@ def _return_home(gs: GameState, name: str, pack: dict) -> str:
     return msg + "."
 
 
-def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg) -> None:
+def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg, visited) -> None:
     stdscr.erase()
     height, width = stdscr.getmaxyx()
 
@@ -180,10 +200,12 @@ def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg) -> None:
             if x == px and y == py:
                 scr.addstr(stdscr, border_top + 1 + y, 3 + x,
                            "@", scr.C_BRIGHT_WHITE, bold=True)
-            else:
+            elif (x, y) in visited:
                 cell = grid[y][x]
                 pair = TERRAIN_COLORS.get(cell, scr.C_DIM)
                 scr.addstr(stdscr, border_top + 1 + y, 3 + x, cell, pair)
+            else:
+                scr.addstr(stdscr, border_top + 1 + y, 3 + x, "?", scr.C_DIM)
         scr.addstr(stdscr, border_top + 1 + y, 3 + MAP_W, "|", scr.C_DIM)
 
     bottom = border_top + MAP_H + 1

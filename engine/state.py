@@ -100,6 +100,10 @@ class GameState:
     has_flower_garden:   bool  = False
     flower_garden:       list  = field(default_factory=list)   # FLOWER_SLOT_COUNT slot dicts
 
+    # Exploration
+    explore_map:         list  = field(default_factory=list)   # flat MAP_W*MAP_H chars
+    explore_visited:     list  = field(default_factory=list)   # [[x,y], ...]
+
     # Timestamps
     last_seen:           float = field(default_factory=time.time)
 

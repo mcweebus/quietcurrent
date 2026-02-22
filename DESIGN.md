@@ -254,8 +254,10 @@ Real-world time elapsed since last session:
 2. **Wanderer stay prompt** — stay/leave currently resolved automatically
    after trade. Should offer explicit "ask them to stay" option.
 
-3. **Exploration persistence** — map regenerates each visit. Future: visited
-   areas remembered, map expands over time.
+3. ~~**Exploration persistence**~~ — done. Map persists in GameState
+   (explore_map flat list, explore_visited [[x,y]] pairs). Fog of war:
+   unvisited cells render as `?`. Loot depletion persists. Both exit
+   paths (return home, death) save state.
 
 4. **Flower crop** — separate from food crops. Aesthetic, attracts visitors
    more frequently. Planned as a Sprint after maintenance menu.
