@@ -71,6 +71,30 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             scr.addstr(stdscr, row, 2, "  ".join(structures), scr.C_DIM)
             row += 1
 
+        # Flower garden summary
+        if gs.has_flower_garden:
+            if not gs.flower_garden_init:
+                scr.addstr(stdscr, row, 2, "flower patch", scr.C_DIM)
+                row += 1
+            else:
+                from engine.flowers import flower_summary
+                fsumm = flower_summary(gs)
+                col = 2
+                scr.addstr(stdscr, row, col, "flowers", scr.C_BRIGHT_YELLOW)
+                col += 7
+                for label, key, pair in [
+                    ("  budding ",  "budding",   scr.C_GREEN),
+                    ("  blooming ", "flowering", scr.C_BRIGHT_YELLOW),
+                    ("  wilting ",  "wilting",   scr.C_RED),
+                ]:
+                    if fsumm[key]:
+                        scr.addstr(stdscr, row, col, label, pair)
+                        col += len(label)
+                        val = str(fsumm[key])
+                        scr.addstr(stdscr, row, col, val, scr.C_NORMAL)
+                        col += len(val)
+                row += 1
+
         # Residents
         if gs.residents:
             row += 1
@@ -142,7 +166,7 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             break
 
         elif key == "1":
-            result, ancestral = do_tend(gs)
+            result, ancestral = do_tend(gs, stdscr)
             tick = world.tick_all(gs)
             _collect_flashes(flashes, result, ancestral,
                              tick.panel_flash, tick.resident_flash,
@@ -151,8 +175,7 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
 
         elif key == "2":
             if gs.panel_state != "neglected" or gs.tend_count > 0:
-                from ui.explore_view import run_explore
-                result = run_explore(stdscr, gs)
+                result = _run_explore_prep(stdscr, gs)
                 if result:
                     flashes.append(result)
                 save_game(gs)
@@ -178,10 +201,8 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
             save_game(gs)
 
         elif key == "4" and current_wanderer:
-            result = run_wanderer_menu(stdscr, gs, current_wanderer)
-            stay_result = world.resolve_stay(gs, current_wanderer)
-            if result:   flashes.append(result)
-            if stay_result: flashes.append(stay_result)
+            results = run_wanderer_menu(stdscr, gs, current_wanderer)
+            flashes.extend(r for r in results if r)
             current_wanderer = None
             tick = world.tick_all(gs)
             _collect_flashes(flashes, tick.panel_flash,
@@ -207,7 +228,7 @@ def _tend_label(gs: GameState) -> str:
     return "tend the panel"
 
 
-def do_tend(gs: GameState) -> tuple[str, str | None]:
+def do_tend(gs: GameState, stdscr) -> tuple[str, str | None]:
     gs.tend_count += 1
     ancestral = world.check_ancestral_milestone(gs)
 
@@ -228,22 +249,55 @@ def do_tend(gs: GameState) -> tuple[str, str | None]:
 
     # Connected — maintenance submenu
     if pan.needs_maintenance(gs):
-        result = run_maintenance_menu(None, gs)  # inline for now
+        result = run_maintenance_menu(stdscr, gs)
         return result, ancestral
 
     gs.power += 1
     return random.choice(txt.PANEL_MAINTAIN_OK), ancestral
 
 
-def run_maintenance_menu(stdscr, gs: GameState) -> str:
-    """Inline maintenance — simplified for main loop context."""
+def run_maintenance_menu(stdscr: curses.window, gs: GameState) -> str:
     conditions = pan.active_conditions(gs)
     if not conditions:
         return random.choice(txt.PANEL_MAINTAIN_OK)
-    # Auto-apply first fixable condition for now
-    # Full curses menu rendered in a dedicated draw pass
-    cond = conditions[0]
-    return pan.do_maintain(gs, cond)
+
+    selected = 0
+    while True:
+        stdscr.erase()
+        scr.addstr(stdscr, 1, 2, "[ panel ]", scr.C_BRIGHT_WHITE, bold=True)
+        scr.addstr(stdscr, 2, 2, "something needs attention.", scr.C_DIM)
+
+        row = 4
+        for i, cond in enumerate(conditions):
+            prefix = "> " if i == selected else "  "
+            label = txt.PANEL_CONDITION_LABELS[cond]
+            cost = pan.MAINTENANCE_COSTS.get(cond, 0)
+            cost_str = f"(1 scrap)" if cost > 0 else "(free)"
+            can_afford = gs.scrap >= cost
+            pair = scr.C_NORMAL if can_afford else scr.C_DIM
+            scr.addstr(stdscr, row, 2,
+                       f"{prefix}{label:<28} {cost_str}",
+                       pair, bold=(i == selected and can_afford))
+            row += 1
+
+        row += 1
+        scr.addstr(stdscr, row, 2,
+                   "↑↓ select   enter: tend to it   q: leave it",
+                   scr.C_DIM)
+        stdscr.refresh()
+
+        key = scr.get_key(stdscr)
+        if key == "UP":
+            selected = max(0, selected - 1)
+        elif key == "DOWN":
+            selected = min(len(conditions) - 1, selected + 1)
+        elif key in ("\n", "\r", " "):
+            cond = conditions[selected]
+            if gs.scrap < pan.MAINTENANCE_COSTS.get(cond, 0):
+                continue
+            return pan.do_maintain(gs, cond)
+        elif key in ("q", "Q", "ESC"):
+            return random.choice(txt.PANEL_MAINTAIN_SKIPPED)
 
 
 # ── Build menu ────────────────────────────────────────────────
@@ -258,6 +312,9 @@ def run_build_menu(stdscr: curses.window, gs: GameState) -> str | None:
     for b in buildings:
         flag = f"has_{b['key']}"
         if getattr(gs, flag, False):
+            continue
+        requires = b.get("requires")
+        if requires and not getattr(gs, requires, False):
             continue
         cost = b["cost"]
         can_afford = all(getattr(gs, r, 0) >= amt for r, amt in cost.items())
@@ -304,7 +361,11 @@ def run_build_menu(stdscr: curses.window, gs: GameState) -> str | None:
 # ── Wanderer menu ─────────────────────────────────────────────
 
 def run_wanderer_menu(stdscr: curses.window, gs: GameState,
-                      wanderer: dict) -> str | None:
+                      wanderer: dict) -> list[str]:
+    messages = []
+    can_afford = getattr(gs, wanderer["want"], 0) >= wanderer["want_amt"]
+
+    # ── Phase 1: trade ──
     while True:
         stdscr.erase()
         scr.addstr(stdscr, 1, 2, wanderer["name"],
@@ -315,15 +376,61 @@ def run_wanderer_menu(stdscr: curses.window, gs: GameState,
                    scr.C_GREEN)
         scr.addstr(stdscr, 5, 2,
                    f"wants:  {wanderer['want_amt']} {wanderer['want']}",
-                   scr.C_YELLOW)
-        scr.addstr(stdscr, 7, 2, "t) trade   q) send them on", scr.C_DIM)
+                   scr.C_YELLOW if can_afford else scr.C_DIM)
+        scr.addstr(stdscr, 7, 2, "t) trade",
+                   scr.C_NORMAL if can_afford else scr.C_DIM)
+        scr.addstr(stdscr, 7, 12, "q) not now", scr.C_DIM)
         stdscr.refresh()
 
         key = scr.get_key(stdscr)
-        if key in ("t", "T"):
-            return world.resolve_trade(gs, wanderer, accept=True)
+        if key in ("t", "T") and can_afford:
+            messages.append(world.resolve_trade(gs, wanderer, accept=True))
+            break
         elif key in ("q", "Q", "ESC"):
-            return world.resolve_trade(gs, wanderer, accept=False)
+            messages.append(random.choice(txt.WANDERER_TRADE_SKIP))
+            break
+
+    # ── Phase 2: stay ──
+    linger = random.choice(txt.WANDERER_LINGER)
+    while True:
+        stdscr.erase()
+        scr.addstr(stdscr, 1, 2, wanderer["name"], scr.C_DIM)
+        scr.addstr(stdscr, 3, 2, linger, scr.C_DIM)
+        scr.addstr(stdscr, 5, 2, "s) ask them to stay", scr.C_NORMAL)
+        scr.addstr(stdscr, 5, 23, "q) let them go", scr.C_DIM)
+        stdscr.refresh()
+
+        key = scr.get_key(stdscr)
+        if key in ("s", "S"):
+            messages.append(world.resolve_stay(gs, wanderer))
+            break
+        elif key in ("q", "Q", "ESC"):
+            messages.append(txt.WANDERER_LEAVE.format(name=wanderer["name"]))
+            break
+
+    return messages
+
+
+# ── Explore prep ──────────────────────────────────────────────
+
+def _run_explore_prep(stdscr: curses.window, gs: GameState) -> str | None:
+    from ui.explore_view import run_explore
+    can_invest = gs.scrap >= 1
+    while True:
+        stdscr.erase()
+        scr.addstr(stdscr, 1, 2, "heading out.", scr.C_BRIGHT_WHITE, bold=True)
+        scr.addstr(stdscr, 3, 2,
+                   "take a length of pipe?  (1 scrap, +1 hp)",
+                   scr.C_NORMAL if can_invest else scr.C_DIM)
+        scr.addstr(stdscr, 5, 2, "y) yes   q) head out as you are", scr.C_DIM)
+        stdscr.refresh()
+
+        key = scr.get_key(stdscr)
+        if key in ("y", "Y") and can_invest:
+            gs.scrap -= 1
+            return run_explore(stdscr, gs, bonus_hp=1)
+        elif key in ("q", "Q", "ESC", "\n", "\r", " ", "n", "N"):
+            return run_explore(stdscr, gs, bonus_hp=0)
 
 
 # ── Flash collector ───────────────────────────────────────────

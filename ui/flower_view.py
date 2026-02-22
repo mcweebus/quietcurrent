@@ -18,30 +18,66 @@ from data import text as txt
 CENTER_ROW = 8   # row of diamond centre; diamond spans rows 6–10
 
 
+# ── Animation ─────────────────────────────────────────────────
+
+# Sway patterns: list of offsets (-1 left, 0 centre, +1 right) per frame step.
+# Each slot is phase-shifted by slot_idx * 7 so they don't all move together.
+_SWAY_PATTERNS = {
+    "sunny":  [0,0,0,0,0,0,0,0,0,0, 1,0,0,0,0,0,0,0,0,0,
+               0,0,0,0,-1,0,0,0,0,0],       # rare, brief lean — mostly still
+    "cloudy": [0,0,0, 1,0,0,0,0,-1,0,
+               0,0, 1,0,0,0,-1,0,0,0],      # gentle periodic drift
+    "windy":  [0, 1, 1, 0,-1,-1],           # fast, pronounced, asymmetric
+    "rainy":  [-1,-1,-1,-1, 0,-1,-1,-1,-1,-1, 0,-1],  # heavy hang, mostly left
+}
+
+
+def _sway_offset(frame: int, slot_idx: int, weather: str) -> int:
+    pattern = _SWAY_PATTERNS.get(weather, _SWAY_PATTERNS["cloudy"])
+    phase   = (frame + slot_idx * 7) % len(pattern)
+    return pattern[phase]
+
+
+def _bud_pair(slot_idx: int, frame: int, spec_color: int) -> int:
+    """Pulse budding flowers between their colour and dim."""
+    phase = (frame + slot_idx * 5) % 20
+    return spec_color if phase < 14 else scr.C_DIM
+
+
+# ── Main entry ─────────────────────────────────────────────────
+
 def run_flower_garden(stdscr: curses.window, gs: GameState) -> None:
     ensure_flower_garden(gs)
 
     cidx    = 0
     msg     = txt.FLOWER_ENTER
     running = True
+    frame   = 0
 
-    stdscr.nodelay(False)
+    stdscr.nodelay(True)
     stdscr.keypad(True)
 
     while running:
-        _draw_flower_garden(stdscr, gs, cidx, msg)
-        msg = ""
+        _draw_flower_garden(stdscr, gs, cidx, msg, frame)
 
         key = scr.get_key(stdscr)
 
+        if not key:
+            curses.napms(120)   # ~8 fps
+            frame += 1
+            continue
+
+        msg = ""   # clear message on any keypress
+
         if key in ("UP", "DOWN", "LEFT", "RIGHT"):
             cidx = _navigate(cidx, key)
-            continue
 
         elif key in ("p", "P"):
             slot = gs.flowers[cidx]
             if slot["state"] == "E":
+                stdscr.nodelay(False)
                 variety = _pick_flower(stdscr)
+                stdscr.nodelay(True)
                 if variety:
                     msg = action_plant_flower(gs, cidx, variety)
                     flower_tick(gs)
@@ -52,12 +88,17 @@ def run_flower_garden(stdscr: curses.window, gs: GameState) -> None:
 
         elif key in ("q", "Q", "ESC"):
             running = False
+            stdscr.nodelay(False)
             _flash_msg(stdscr, txt.FLOWER_LEAVE)
 
+    stdscr.nodelay(False)
+
+
+# ── Navigation ────────────────────────────────────────────────
 
 def _navigate(cidx: int, direction: str) -> int:
     """Return the index of the best neighbour in the given direction."""
-    _, ro, co = FLOWER_SLOTS[cidx]          # unpack 3-tuple
+    _, ro, co = FLOWER_SLOTS[cidx]
     pref = {
         "UP":    (-1,  0),
         "DOWN":  ( 1,  0),
@@ -69,7 +110,7 @@ def _navigate(cidx: int, direction: str) -> int:
     best_score = 0
 
     for nbr_idx in SLOT_NEIGHBORS[cidx]:
-        _, nr, nc  = FLOWER_SLOTS[nbr_idx]  # unpack 3-tuple
+        _, nr, nc  = FLOWER_SLOTS[nbr_idx]
         score      = (nr - ro) * pr + (nc - co) * pc
         if score > best_score:
             best_score = score
@@ -78,8 +119,10 @@ def _navigate(cidx: int, direction: str) -> int:
     return best_idx
 
 
+# ── Drawing ───────────────────────────────────────────────────
+
 def _draw_flower_garden(stdscr: curses.window, gs: GameState,
-                        cidx: int, msg: str) -> None:
+                        cidx: int, msg: str, frame: int) -> None:
     stdscr.erase()
     height, width = stdscr.getmaxyx()
     center_col = width // 2
@@ -91,49 +134,80 @@ def _draw_flower_garden(stdscr: curses.window, gs: GameState,
         scr.addstr(stdscr, 0, 2 + len(header) + 2,
                    f"tended by {gs.flower_garden_unlocked_by}", scr.C_DIM)
 
-    # --- Ambient text ---
-    ambient_idx = (gs.action_count // 6) % len(txt.FLOWER_AMBIENT)
+    # --- Ambient text (cycles every ~7 s at 8 fps) ---
+    ambient_idx = (frame // 60) % len(txt.FLOWER_AMBIENT)
     scr.addstr(stdscr, 2, 2, txt.FLOWER_AMBIENT[ambient_idx], scr.C_DIM)
 
     # --- Diamond ---
     for i, (ring, ro, co) in enumerate(FLOWER_SLOTS):
-        slot    = gs.flowers[i]
-        state   = slot["state"]
-        variety = slot["flower"]
-        spec    = FLOWERS.get(variety, {})
+        slot      = gs.flowers[i]
+        state     = slot["state"]
+        variety   = slot["flower"]
+        spec      = FLOWERS.get(variety, {})
+        is_cursor = (i == cidx)
 
         sr = CENTER_ROW + ro
         sc = center_col + co * 2
 
-        is_cursor = (i == cidx)
+        sway = _sway_offset(frame, i, gs.weather)
 
         if state == "E":
-            sym, pair, bold = ".", scr.C_DIM, False
-        elif state == "B":
-            sym  = "."
-            pair = spec.get("color", scr.C_GREEN)
-            bold = False
+            if is_cursor:
+                scr.addstr(stdscr, sr, sc - 1, "[", scr.C_NORMAL, bold=True)
+                scr.addstr(stdscr, sr, sc,     ".", scr.C_DIM)
+                scr.addstr(stdscr, sr, sc + 1, "]", scr.C_NORMAL, bold=True)
+            else:
+                scr.addstr(stdscr, sr, sc, ".", scr.C_DIM)
+            continue
+
+        # Resolve bloom appearance per state
+        if state == "B":
+            bloom_sym  = "."
+            bloom_pair = _bud_pair(i, frame, spec.get("color", scr.C_GREEN))
+            bloom_bold = False
         elif state == "F":
-            sym  = spec.get("bloom_sym", "*")
-            pair = spec.get("color", scr.C_BRIGHT_YELLOW)
-            bold = True
+            bloom_sym  = spec.get("bloom_sym", "*")
+            bloom_pair = spec.get("color", scr.C_BRIGHT_YELLOW)
+            bloom_bold = True
         elif state == "W":
-            sym, pair, bold = "x", scr.C_DIM, False
+            sway       = -1 if i % 2 == 0 else 1   # fixed droop direction per slot
+            bloom_sym  = "x" if (frame + i * 3) % 12 < 8 else "."
+            bloom_pair = scr.C_DIM
+            bloom_bold = False
         else:
-            sym, pair, bold = "?", scr.C_DIM, False
+            bloom_sym, bloom_pair, bloom_bold = "?", scr.C_DIM, False
+
+        bloom_col = sc + sway
+        stem_char = "/" if sway > 0 else ("\\" if sway < 0 else "")
 
         if is_cursor:
-            scr.addstr(stdscr, sr, sc - 1, "[", scr.C_NORMAL, bold=True)
-        scr.addstr(stdscr, sr, sc, sym, pair, bold=bold)
-        if is_cursor:
-            scr.addstr(stdscr, sr, sc + 1, "]", scr.C_NORMAL, bold=True)
+            # Cursor brackets wrap the whole bloom+stem unit
+            if sway == 0:
+                scr.addstr(stdscr, sr, sc - 1,        "[",        scr.C_NORMAL, bold=True)
+                scr.addstr(stdscr, sr, sc,             bloom_sym,  bloom_pair,   bold=bloom_bold)
+                scr.addstr(stdscr, sr, sc + 1,         "]",        scr.C_NORMAL, bold=True)
+            elif sway > 0:
+                # stem at sc, bloom at sc+1  →  [ / bloom ]
+                scr.addstr(stdscr, sr, sc - 1,         "[",        scr.C_NORMAL, bold=True)
+                scr.addstr(stdscr, sr, sc,              stem_char,  scr.C_DIM)
+                scr.addstr(stdscr, sr, bloom_col,       bloom_sym,  bloom_pair,   bold=bloom_bold)
+                scr.addstr(stdscr, sr, bloom_col + 1,   "]",        scr.C_NORMAL, bold=True)
+            else:
+                # bloom at sc-1, stem at sc  →  [ bloom \ ]
+                scr.addstr(stdscr, sr, bloom_col - 1,  "[",        scr.C_NORMAL, bold=True)
+                scr.addstr(stdscr, sr, bloom_col,       bloom_sym,  bloom_pair,   bold=bloom_bold)
+                scr.addstr(stdscr, sr, sc,              stem_char,  scr.C_DIM)
+                scr.addstr(stdscr, sr, sc + 1,          "]",        scr.C_NORMAL, bold=True)
+        else:
+            if stem_char:
+                scr.addstr(stdscr, sr, sc, stem_char, scr.C_DIM)
+            scr.addstr(stdscr, sr, bloom_col, bloom_sym, bloom_pair, bold=bloom_bold)
 
-    # --- Slot info (below diamond, row 11+) ---
+    # --- Slot info (below diamond) ---
     slot    = gs.flowers[cidx]
     state   = slot["state"]
     variety = slot["flower"]
     spec    = FLOWERS.get(variety, {})
-    ring    = FLOWER_SLOTS[cidx][0]
 
     info_row = CENTER_ROW + 3
 
@@ -168,6 +242,8 @@ def _draw_flower_garden(stdscr: curses.window, gs: GameState,
 
     stdscr.refresh()
 
+
+# ── Planting ──────────────────────────────────────────────────
 
 def _pick_flower(stdscr: curses.window) -> str | None:
     flowers  = list(FLOWERS.items())

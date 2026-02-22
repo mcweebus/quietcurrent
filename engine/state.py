@@ -70,6 +70,12 @@ class GameState:
     has_compost_pile:    bool  = False
     compost_level:       int   = 0    # 0-5
 
+    # Structure upgrades
+    has_reinforced_mounting:  bool = False
+    has_deepened_catcher:     bool = False
+    has_extended_beacon:      bool = False
+    has_braced_connector:     bool = False
+
     # Weather
     weather:             str   = "sunny"
     weather_duration:    int   = 0

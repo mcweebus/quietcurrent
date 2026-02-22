@@ -57,10 +57,12 @@ PANEL_FLASH = {
 }
 
 PANEL_MAINTENANCE_RESULTS = {
-    "dust":      "you wipe the glass down. the surface clears. output improves.",
-    "wire":      "you press the connector home. the hum steadies.",
-    "debris":    "you kick the debris clear. the base is clean.",
-    "connector": "you swap the connector out. the creak is gone. (-1 scrap)",
+    "dust":               "you wipe the glass down. the surface clears. output improves.",
+    "wire":               "you work the connection back into place. the hum steadies. (-1 scrap)",
+    "debris":             "you lever the debris clear. the base is clean. (-1 scrap)",
+    "connector":          "you swap the connector out. the creak is gone. (-1 scrap)",
+    "wire_no_scrap":      "you need a piece of scrap to reseat it properly.",
+    "debris_no_scrap":    "you'd need scrap to lever this clear.",
     "connector_no_scrap": "you need a piece of scrap to replace it.",
 }
 
@@ -70,6 +72,12 @@ PANEL_CONDITION_LABELS = {
     "debris":    "debris around the base",
     "connector": "a worn connector",
 }
+
+PANEL_MAINTAIN_SKIPPED = [
+    "you look it over. the conditions remain.",
+    "you note what needs doing. you'll get to it.",
+    "you take stock of it. not today.",
+]
 
 # --- Weather ------------------------------------------------
 
@@ -249,6 +257,19 @@ WANDERER_TRADE_DECLINE = [
     "{name} nods and moves on.",
     "you watch {name} go. the settlement feels the same size.",
     "{name} doesn't seem offended. people pass through.",
+]
+
+WANDERER_TRADE_SKIP = [
+    "no exchange. that's all right.",
+    "you leave it.",
+    "they don't press it.",
+]
+
+WANDERER_LINGER = [
+    "they don't seem to be in a hurry.",
+    "something keeps them near a moment longer.",
+    "the silence between you isn't uncomfortable.",
+    "they haven't started moving yet.",
 ]
 
 WANDERER_STAY = "{name} stays."
@@ -476,7 +497,53 @@ BUILDINGS = [
             "you layer scraps, soil, and dry matter into a corner. it will break down in time.",
         ],
     },
+    {
+        "key":      "reinforced_mounting",
+        "label":    "reinforce the mounting",
+        "cost":     {"scrap": 3},
+        "desc":     "debris settles less at the base",
+        "requires": None,
+        "built": [
+            "you brace the frame. it sits more solidly in the ground.",
+            "less give in the base. the panel should weather wind better.",
+        ],
+    },
+    {
+        "key":      "deepened_catcher",
+        "label":    "deepen the catcher",
+        "cost":     {"scrap": 4},
+        "desc":     "collects water every 3 actions instead of 4",
+        "requires": "has_rain_catcher",
+        "built": [
+            "you extend the catch surface. more comes through in a shower.",
+            "a wider basin, re-angled. the drip is more frequent now.",
+        ],
+    },
+    {
+        "key":      "extended_beacon",
+        "label":    "extend the beacon",
+        "cost":     {"scrap": 5},
+        "desc":     "signal carries further",
+        "requires": "has_signal_beacon",
+        "built": [
+            "you add length to the mast. the hum lifts.",
+            "the signal reaches further now. something out there might notice.",
+        ],
+    },
+    {
+        "key":      "braced_connector",
+        "label":    "brace the connector",
+        "cost":     {"scrap": 3},
+        "desc":     "connector wears more slowly",
+        "requires": None,
+        "built": [
+            "you reinforce the fitting. it should hold longer.",
+            "the connection feels more permanent now. less give.",
+        ],
+    },
 ]
+
+EXPLORE_PREP_INVEST = "you take a length of pipe. it has uses outside. (-1 scrap, +1 hp)"
 
 # --- Title / splash -----------------------------------------
 

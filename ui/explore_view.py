@@ -38,10 +38,11 @@ def _gen_map() -> list[list[str]]:
     return grid
 
 
-def run_explore(stdscr: curses.window, gs: GameState) -> str | None:
+def run_explore(stdscr: curses.window, gs: GameState,
+                bonus_hp: int = 0) -> str | None:
     grid = _gen_map()
     px, py = 0, 0
-    hp = 5
+    hp = 5 + bonus_hp
     pack = {"scrap": 0, "water": 0, "seeds": 0}
     msg = random.choice(txt.EXPLORE_DEPART).format(name=gs.settlement_name)
     running = True

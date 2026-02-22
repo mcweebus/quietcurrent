@@ -49,10 +49,19 @@ def tick_all(gs: GameState) -> TickResult:
     # Residents
     result.resident_flash = res.tick_residents(gs)
 
+    # Resident water and power draw (silent — no flash)
+    if gs.residents:
+        if gs.action_count % 8 == 0:
+            gs.water = max(0, gs.water - min(len(gs.residents), 4))
+        if gs.action_count % 12 == 0:
+            gs.power = max(0, gs.power - min(len(gs.residents), 3))
+
     # Passives
-    if gs.has_rain_catcher and gs.action_count % 4 == 0:
-        gs.water += 1
-        result.passive_flash = txt.PASSIVE_RAIN_CATCHER
+    if gs.has_rain_catcher:
+        interval = 3 if gs.has_deepened_catcher else 4
+        if gs.action_count % interval == 0:
+            gs.water += 1
+            result.passive_flash = txt.PASSIVE_RAIN_CATCHER
 
     if gs.has_garden_bed and gs.action_count % 8 == 0:
         gs.seeds += 1
@@ -69,7 +78,9 @@ def check_wanderer_arrival(gs: GameState) -> dict | None:
         return None
 
     threshold = 15 + gs.resident_count() * 3 + res.community_bonus(gs)
-    threshold = min(45, threshold)
+    if gs.has_extended_beacon:
+        threshold += 8
+    threshold = min(55, threshold)
 
     if random.randint(0, 99) < threshold:
         return _spawn_wanderer(gs)

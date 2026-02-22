@@ -18,6 +18,13 @@ DEGRADE_PROBS = {
 
 CONDITIONS = ["dust", "wire", "debris", "connector"]
 
+MAINTENANCE_COSTS = {
+    "dust":      0,
+    "wire":      1,
+    "debris":    1,
+    "connector": 1,
+}
+
 
 def recalc_efficiency(gs: GameState) -> None:
     eff = 100
@@ -70,6 +77,10 @@ def degrade_panel(gs: GameState, pale_present: bool = False) -> str | None:
         chance = cfg["chance"]
         if cond == "connector" and pale_present:
             chance *= 0.5
+        if cond == "connector" and gs.has_braced_connector:
+            chance *= 0.5
+        if cond == "debris" and gs.has_reinforced_mounting:
+            chance *= 0.5
         if random.random() < chance:
             setattr(gs, f"panel_{cond}", True)
             recalc_efficiency(gs)
@@ -100,11 +111,11 @@ def generate_power(gs: GameState, junction_bonus: bool = False) -> bool:
 
 def do_maintain(gs: GameState, condition: str) -> str:
     """Apply a maintenance action. Returns result text."""
-    if condition == "connector":
-        if gs.scrap < 1:
-            return text.PANEL_MAINTENANCE_RESULTS["connector_no_scrap"]
-        gs.scrap -= 1
-
+    cost = MAINTENANCE_COSTS.get(condition, 0)
+    if cost > 0 and gs.scrap < cost:
+        return text.PANEL_MAINTENANCE_RESULTS[f"{condition}_no_scrap"]
+    if cost > 0:
+        gs.scrap -= cost
     setattr(gs, f"panel_{condition}", False)
     recalc_efficiency(gs)
     return text.PANEL_MAINTENANCE_RESULTS[condition]
