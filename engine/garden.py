@@ -86,6 +86,40 @@ def action_enrich(gs: GameState, x: int, y: int) -> str:
     return txt.GARDEN_ENRICH_OK.format(soil=new_soil)
 
 
+def action_feed(gs: GameState, x: int, y: int) -> str:
+    p = get_plot(gs, x, y)
+    if p["state"] not in ACTIVE_STATES:
+        return txt.GARDEN_FEED_WRONG
+    if gs.mycelium < 1:
+        return txt.GARDEN_MYCELIUM_NONE
+    gs.mycelium -= 1
+    new_soil = min(5, p["soil"] + 1)
+    set_plot(gs, x, y, soil=new_soil)
+    return txt.GARDEN_FEED_OK.format(soil=new_soil)
+
+
+def action_extend(gs: GameState, x: int, y: int) -> str:
+    p = get_plot(gs, x, y)
+    if p["state"] != EMPTY:
+        return txt.GARDEN_EXTEND_WRONG
+    if gs.mycelium < 2:
+        return txt.GARDEN_EXTEND_LOW
+    gs.mycelium -= 2
+    set_plot(gs, x, y, state=HYPHA, age=0, fruit_age=0)
+    return txt.GARDEN_EXTEND_OK
+
+
+def action_suppress(gs: GameState, x: int, y: int) -> str:
+    p = get_plot(gs, x, y)
+    if p["state"] != COMPETING:
+        return txt.GARDEN_SUPPRESS_WRONG
+    if gs.mycelium < 1:
+        return txt.GARDEN_MYCELIUM_NONE
+    gs.mycelium -= 1
+    set_plot(gs, x, y, state=HYPHA, age=0, fruit_age=0)
+    return txt.GARDEN_SUPPRESS_OK
+
+
 def action_add_compost(gs: GameState) -> str:
     if not gs.has_compost_pile:
         return txt.GARDEN_COMPOST_NEED

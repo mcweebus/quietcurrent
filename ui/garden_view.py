@@ -6,6 +6,7 @@ from engine.state import GameState, GARDEN_W, GARDEN_H, GARDEN_SIZE, plot_idx
 from engine.garden import (
     garden_tick, action_inoculate, action_water,
     action_clear, action_enrich, action_add_compost, ensure_garden,
+    action_feed, action_extend, action_suppress,
     EMPTY, HYPHA, NETWORK, MATURE, FRUITING, DECOMP, COMPETING,
 )
 from ui import screen as scr
@@ -63,6 +64,18 @@ def run_garden(stdscr: curses.window, gs: GameState) -> None:
         elif key in ("k", "K"):
             msg = action_enrich(gs, cx, cy)
             garden_tick(gs)
+
+        elif key in ("m", "M"):
+            state = gs.garden[plot_idx(cx, cy)]["state"]
+            if state in (NETWORK, MATURE, FRUITING):
+                msg = action_feed(gs, cx, cy)
+                garden_tick(gs)
+            elif state == EMPTY:
+                msg = action_extend(gs, cx, cy)
+                garden_tick(gs)
+            elif state == COMPETING:
+                msg = action_suppress(gs, cx, cy)
+                garden_tick(gs)
 
         elif key in ("+", "="):
             msg = action_add_compost(gs)
@@ -165,6 +178,9 @@ def _draw_garden(stdscr: curses.window, gs: GameState,
     if state == "W":                                   hints.append("c:clear")
     if gs.has_compost_pile and state == "E":           hints.append("k:enrich")
     if gs.has_compost_pile:                            hints.append("+:compost")
+    if state in ("N", "M", "F"):                       hints.append("m:feed")
+    if state == "E":                                   hints.append("m:extend")
+    if state == "W":                                   hints.append("m:suppress")
     hints.append("q:leave")
 
     scr.addstr(stdscr, row, 2, "  ".join(hints), scr.C_DIM)
