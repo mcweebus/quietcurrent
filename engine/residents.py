@@ -164,10 +164,43 @@ def tick_residents(gs: GameState) -> str | None:
     return flash
 
 
+def _apply_interaction_effect(pair: frozenset, gs: GameState) -> None:
+    match tuple(sorted(pair)):
+        case ("Tuck", "Weft"):
+            gs.water += 1
+        case ("Sable", "Thresh"):
+            gs.mycelium += 1
+        case ("Fen", "Reed"):
+            if gs.garden_initialized and gs.garden:
+                living = [p for p in gs.garden if p.get("state") in ("H", "N", "M", "F")]
+                if living:
+                    p = random.choice(living)
+                    p["soil"] = min(5, p["soil"] + 1)
+        case ("Pale", "Weft"):
+            conditions = [c for c in ("panel_dust", "panel_wire", "panel_debris", "panel_connector")
+                          if getattr(gs, c, False)]
+            if conditions:
+                setattr(gs, random.choice(conditions), False)
+                from engine.panel import recalc_efficiency
+                recalc_efficiency(gs)
+        case ("Reed", "Tuck"):
+            if gs.garden_initialized and gs.garden:
+                living = [p for p in gs.garden if p.get("state") in ("H", "N", "M", "F")]
+                if living:
+                    driest = min(living, key=lambda p: p.get("moisture", 0))
+                    driest["moisture"] = min(5, driest.get("moisture", 0) + 1)
+        case ("Drift", "Sable"):
+            gs.weather_duration = max(0, gs.weather_duration - 2)
+
+
 def _check_interactions(gs: GameState) -> str | None:
     names = set(resident_names(gs))
-    for pair, line in INTERACTIONS.items():
-        if pair.issubset(names):
-            if random.random() < 0.4:
-                return line
+    active = [(pair, line) for pair, line in INTERACTIONS.items() if pair.issubset(names)]
+    if not active:
+        return None
+    random.shuffle(active)
+    for pair, line in active:
+        if random.random() < 0.4:
+            _apply_interaction_effect(pair, gs)
+            return line
     return None
