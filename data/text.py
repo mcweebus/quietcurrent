@@ -360,6 +360,20 @@ RESIDENTS = {
         "effect":   "seed_gen",
         "farewell": "Reed is gone. the garden opinions go with them.",
     },
+    "Lace": {
+        "desc":     "arrived during the last rain. hasn't said much about where from.",
+        "primary":  "water_2",
+        "secondary":"weather_rainy",
+        "effect":   "mycelium_gen",
+        "farewell": "Lace has gone. the rain, when it comes, feels less like it was expected.",
+    },
+    "Crest": {
+        "desc":     "carries very little. moves like something that has been moving for a long time.",
+        "primary":  "always",
+        "secondary":"panel_efficiency_50",
+        "effect":   "scrap_gen",
+        "farewell": "Crest has moved on. that was probably always going to happen.",
+    },
 }
 
 RESIDENT_INTERACTIONS = {

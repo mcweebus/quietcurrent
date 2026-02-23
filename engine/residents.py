@@ -64,6 +64,7 @@ def _primary_met(name: str, gs: GameState) -> bool:
         case "garden_active_2":      return active >= 2
         case "garden_active_3":      return active >= 3
         case "garden_active_5":      return active >= 5
+        case "water_2":              return gs.water >= 2
         case "always":               return True
         case _:                      return True
 
@@ -114,6 +115,14 @@ def _apply_effect(name: str, gs: GameState) -> str | None:
             if roll < 0.18:
                 gs.spores += 1
                 return "something near the garden has yielded a little more than expected."
+        case "mycelium_gen":
+            if roll < 0.15:
+                gs.mycelium += 1
+                return "something in the substrate has yielded a little more than usual."
+        case "scrap_gen":
+            if roll < 0.12:
+                gs.scrap += 1
+                return "something useful has been left at the edge of the settlement."
         case "connector_protect" | "community_draw" | "catalyst":
             pass  # handled externally
     return None
