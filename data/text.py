@@ -109,24 +109,49 @@ EXPLORE_LOOT_SPORES = [
 ]
 
 EXPLORE_ENCOUNTERS_SAFE = [
+    # atmosphere — kept from original
     "something moves in the peripheral dark. then doesn't.",
     "a cold firepit. someone was here. isn't now.",
     "a noise you can't place. you wait. it stops.",
     "you are watched. you don't know by what. it passes.",
-    "a door, half open. you don't go in.",
-    "footprints in soft ground. recent. heading away.",
+    # traces of others
+    "traces in the soft ground. recent. heading away.",
+    "you find where a wanderer passed. the signs are the kind you recognize.",
+    "a structure half-reclaimed. you can't tell if the reclaiming is recent or very old.",
+    # environmental sensing
+    "the soil here is different. darker. you note it without stopping.",
+    "light comes through at a low angle. something in you orients toward it.",
+    "a dry stretch. the crossing takes more than it should. you make it.",
+    "old contaminated ground. you know to go around it before you know you know.",
+    "rain has pooled in the low places. you slow down near it.",
+    # other organisms
+    "traces of an old network, long dormant. the ground still holds the shape of it.",
+    "something is fruiting nearby. you can tell without seeing it.",
+    "spores in the air that aren't yours. something else is spreading.",
+    "the rootlines of something large are still under the broken ground.",
+    # distance from home
+    "the connection thins out here. a different kind of quiet.",
+    # reclaimed world
+    "concrete cracked into sections. something grows in every crack. it knows what it's doing.",
 ]
 
 EXPLORE_ENCOUNTERS_HARM = [
-    "a collapse. debris catches your shoulder.",
-    "the footing gives. you catch yourself but not cleanly.",
-    "something in the undergrowth. you move fast. not fast enough.",
+    # physical
+    "a collapse. debris comes down without warning. you come away slower.",
+    "the footing gives. the recovery costs something.",
+    # contamination
+    "treated ground. something in it is wrong. you don't pass through cleanly.",
+    "standing water, but the wrong kind. you know before you're in it. the knowing comes too late.",
+    # competition
+    "something in the undergrowth. it isn't moving away. you do, and not cleanly.",
+    # environment
+    "a dry heat off a south-facing surface. prolonged. you come away diminished.",
 ]
 
 EXPLORE_HIGH_GROUND = [
     "from the high ground you can see for a long way. nothing moves.",
     "the view is wide. the settlement is visible, small and far.",
-    "wind up here. it clears your head.",
+    "wind up here. something about the exposure suits you.",
 ]
 
 EXPLORE_DEPART = [
