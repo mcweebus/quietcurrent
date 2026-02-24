@@ -25,6 +25,8 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
 
     flashes: list[str] = []
     current_wanderer: dict | None = None
+    cheat_pos = 0
+    CHEAT = "penguin"
 
     while True:
         height, width = stdscr.getmaxyx()
@@ -163,6 +165,18 @@ def game_loop(stdscr: curses.window, gs: GameState) -> None:
         key = scr.get_key(stdscr)
         if not key:
             continue
+
+        if len(key) == 1:
+            if key == CHEAT[cheat_pos]:
+                cheat_pos += 1
+                if cheat_pos == len(CHEAT):
+                    cheat_pos = 0
+                    gs.power = gs.water = gs.scrap = gs.spores = gs.mycelium = 50
+                    flashes.append("something stirs. resources replenished.")
+                    save_game(gs)
+                continue
+            else:
+                cheat_pos = 0
 
         if key == "q":
             save_game(gs)

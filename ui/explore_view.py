@@ -194,6 +194,13 @@ def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg, visited) -> None:
     border_top = 2
     scr.addstr(stdscr, border_top, 2, "+" + "-" * MAP_W + "+", scr.C_DIM)
 
+    adjacent: set[tuple[int, int]] = set()
+    for (vx, vy) in visited:
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            adjacent.add((vx + dx, vy + dy))
+    adjacent.add((px - 1, py)); adjacent.add((px + 1, py))
+    adjacent.add((px, py - 1)); adjacent.add((px, py + 1))
+
     for y in range(MAP_H):
         scr.addstr(stdscr, border_top + 1 + y, 2, "|", scr.C_DIM)
         for x in range(MAP_W):
@@ -204,6 +211,8 @@ def _draw_explore(stdscr, gs, grid, px, py, hp, pack, msg, visited) -> None:
                 cell = grid[y][x]
                 pair = TERRAIN_COLORS.get(cell, scr.C_DIM)
                 scr.addstr(stdscr, border_top + 1 + y, 3 + x, cell, pair)
+            elif (x, y) in adjacent and grid[y][x] == "#":
+                scr.addstr(stdscr, border_top + 1 + y, 3 + x, "#", scr.C_DIM)
             else:
                 scr.addstr(stdscr, border_top + 1 + y, 3 + x, "?", scr.C_DIM)
         scr.addstr(stdscr, border_top + 1 + y, 3 + MAP_W, "|", scr.C_DIM)
